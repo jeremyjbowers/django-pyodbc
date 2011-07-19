@@ -258,7 +258,7 @@ class DatabaseWrapper(BaseDatabaseWrapper):
             if self.drv_name.startswith('LIBTDSODBC') and not self.connection.autocommit:
                 self.connection.commit()
 
-        return CursorWrapper(cursor, self.driver_needs_utf8)
+        return CursorWrapper(cursor, self.driver_needs_utf8, settings_dict)
 
 
 class CursorWrapper(object):
@@ -271,12 +271,14 @@ class CursorWrapper(object):
         self.driver_needs_utf8 = driver_needs_utf8
         self.last_sql = ''
         self.last_params = ()
+        self.settings_dict = settings_dict
+        self.encoding = self.settings_dict['OPTIONS'].get('encoding', 'utf-8')
 
     def format_sql(self, sql, n_params=None):
         if self.driver_needs_utf8 and isinstance(sql, unicode):
             # FreeTDS (and other ODBC drivers?) doesn't support Unicode
             # yet, so we need to encode the SQL clause itself in utf-8
-            sql = sql.encode('utf-8')
+            sql = sql.encode(self.encoding)
         # pyodbc uses '?' instead of '%s' as parameter placeholder.
         if n_params is not None:
             sql = sql % tuple('?' * n_params)
@@ -292,13 +294,13 @@ class CursorWrapper(object):
                 if self.driver_needs_utf8:
                     # FreeTDS (and other ODBC drivers?) doesn't support Unicode
                     # yet, so we need to encode parameters in utf-8
-                    fp.append(p.encode('utf-8'))
+                    fp.append(p.encode(self.encoding))
                 else:
                     fp.append(p)
             elif isinstance(p, str):
                 if self.driver_needs_utf8:
                     # TODO: use system encoding when calling decode()?
-                    fp.append(p.decode('utf-8').encode('utf-8'))
+                    fp.append(p.decode(self.encoding).encode(self.encoding))
                 else:
                     fp.append(p)
             elif isinstance(p, type(True)):
@@ -340,7 +342,7 @@ class CursorWrapper(object):
         fr = []
         for row in rows:
             if isinstance(row, str):
-                fr.append(row.decode('utf-8'))
+                fr.append(row.decode(self.encoding))
             else:
                 fr.append(row)
         return tuple(fr)
