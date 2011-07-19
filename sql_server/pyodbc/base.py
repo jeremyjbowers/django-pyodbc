@@ -266,7 +266,7 @@ class CursorWrapper(object):
     A wrapper around the pyodbc's cursor that takes in account a) some pyodbc
     DB-API 2.0 implementation and b) some common ODBC driver particularities.
     """
-    def __init__(self, cursor, driver_needs_utf8):
+    def __init__(self, cursor, driver_needs_utf8, settings_dict):
         self.cursor = cursor
         self.driver_needs_utf8 = driver_needs_utf8
         self.last_sql = ''
